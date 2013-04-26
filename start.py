@@ -7,11 +7,11 @@ from bot.config import configdata
 from bot.const import HTTPProxyValueConst
 from bot.dbitem import HTTPProxy
 from bot.dbutil import FetchSession
+from const import ValidProxySpiderConst, AppConst
 from multiprocessing.process import Process
 from scrapy.cmdline import execute
 from scrapy.settings import CrawlerSettings
-from crawler import domain_crawl
-from const import ValidProxySpiderConst
+import time
 
 def fetch51freeproxy():
     values = configdata.get(ValidProxySpiderConst.vpsettings, {})
@@ -47,17 +47,29 @@ def get_proxies():
     finally:
         fs.close()
 
+class ValidProcess(Process):
+    
+    def __init__(self, proxies):
+        super(ValidProcess, self).__init__()
+        self.proxies = proxies
+
+    def run(self):
+        values = configdata.get(ValidProxySpiderConst.vpsettings, {})
+        values[AppConst.proxies] = self.proxies
+        values[u'DOWNLOAD_TIMEOUT'] = 3
+        settings = CrawlerSettings(None, values=values)
+        execute(argv=["scrapy", "crawl", 'SOSOSpider' ], settings=settings)
+
 if __name__ == '__main__':
-    proxies = get_proxies()
     
-    p = Process(target=domain_crawl,args=(proxies,))
-    p.start()
-    p.join()
-
-#    domain_crawl(proxies)
-
+    frequence = configdata[AppConst.app_config].get(AppConst.app_config_frequence, 1800)
+    frequence = int(frequence)
+    while 1:
+        proxies = get_proxies()
+        p = ValidProcess(proxies)
+        p.start()
+        p.join()
+        time.sleep(frequence)
     
     
     
-
-

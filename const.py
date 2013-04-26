@@ -17,3 +17,4 @@ class ValidProxySpiderConst(ScrapyConst):
 class AppConst(object):
     app_config = u'app'
     app_config_frequence = u'frequence'
+    proxies = u'proxies'
