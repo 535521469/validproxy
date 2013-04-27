@@ -9,6 +9,7 @@ class ScrapyConst(object):
     SPIDER_MODULES = u'SPIDER_MODULES'
     LOG_LEVEL = u'LOG_LEVEL'
     LOG_FILE = u'LOG_FILE'
+    DOWNLOAD_TIMEOUT = u'DOWNLOAD_TIMEOUT'
 
 class ValidProxySpiderConst(ScrapyConst):
     vpsettings = u'vpsettings'

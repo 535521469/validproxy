@@ -36,4 +36,33 @@ class SOSOSpider(BaseSpider):
         else:
             yield proxy
             
+
+class SOSOSpider2(BaseSpider):
+    name = u'SOSOSpider2'
+    
+    def start_requests(self):
+#        for proxy in self.settings[u'proxies']:
+        proxy = self.settings[u'proxy']
+        yield Request(u'http://www.soso.com/q?w=IP%B5%D8%D6%B7', self.parse,
+                       meta={u'proxy':u'%s://%s:%s' % 
+                             (proxy.procotol, proxy.ip, proxy.port)},
+                       cookies={u'proxy':proxy},
+                       dont_filter=True,
+                       )
+    
+    @change_proxy_status
+    def parse(self, response):
+        proxy = response.request.cookies[u'proxy']
+        hxs = HtmlXPathSelector(response)
+        try:
+            ip = hxs.select('//div[@id="ip"]/strong[1]/text()').extract()[0]
+            if ip == proxy.ip:
+                proxy.validflag = HTTPProxyValueConst.validflag_yes
+            else:
+                proxy.validflag = HTTPProxyValueConst.validflag_no
+        except Exception:
+            proxy.validflag = HTTPProxyValueConst.validflag_no
+        else:
+            yield proxy
+            
         

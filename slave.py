@@ -7,12 +7,16 @@ from bot.config import configdata
 from bot.const import HTTPProxyValueConst
 from bot.dbitem import HTTPProxy
 from bot.dbutil import FetchSession
+from celery import Celery
 from const import ValidProxySpiderConst as const, AppConst
 from multiprocessing.process import Process
 from scrapy.cmdline import execute
 from scrapy.settings import CrawlerSettings
 import datetime
-import time
+import os
+import sys
+
+sys.path.append(os.getcwd())
 
 def fetch51freeproxy():
     values = configdata.get(const.vpsettings, {})
@@ -32,12 +36,15 @@ def enqueue(target, p_dict):
     elif p_dict[target.__name__].is_alive():
         pass
 
-def get_proxies():
+def get_proxies(proxy_ids=None):
     fs = FetchSession()
     try:
         status = [HTTPProxyValueConst.validflag_yes,
                   HTTPProxyValueConst.validflag_null, ]
-        proxies = fs.query(HTTPProxy).filter(HTTPProxy.validflag.in_(status)).all()
+        proxies = fs.query(HTTPProxy).filter(HTTPProxy.validflag.in_(status))
+        if proxy_ids:
+            proxies = proxies.filter(HTTPProxy.seqid.in_(proxy_ids))
+        proxies = proxies.all()
         return proxies
     except Exception as e:
         print str(e)
@@ -55,34 +62,21 @@ class ValidProcess(Process):
         self.proxies = proxies
 
     def run(self):
-        values = configdata.get(const.vpsettings, {})
-        values[AppConst.proxies] = self.proxies
-        values[const.DOWNLOAD_TIMEOUT] = int(values.get(const.DOWNLOAD_TIMEOUT, 5))
-        logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        values[const.LOG_FILE] = '%s_%s' % (logfile_prefix,
-                                         values[const.LOG_FILE])
-        settings = CrawlerSettings(None, values=values)
-        execute(argv=["scrapy", "crawl", 'SOSOSpider' ], settings=settings)
-        
-def run():
-    frequence = configdata[AppConst.app_config].get(AppConst.app_config_frequence, 1800)
-    frequence = int(frequence)
-    while 1:
-        proxy_ids = []
-        proxies = get_proxies()
-        for idx, proxy in enumerate(proxies):
-            proxy_ids.append(proxy.seqid)
-            if len(proxy_ids) == 500:
-                p = ValidProcess(proxies)
-                p.start()
-                proxy_ids = []
-        else:
-            if proxy_ids:
-                p = ValidProcess(proxies)
-                p.start()
-                
-        time.sleep(frequence)
+        if self.proxies:
+            values = configdata.get(const.vpsettings, {})
+            values[AppConst.proxies] = self.proxies
+            values[const.DOWNLOAD_TIMEOUT] = int(values.get(const.DOWNLOAD_TIMEOUT, 5))
+            logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            values[u'LOG_FILE'] = '%s_%s' % (logfile_prefix,
+                                             values[const.LOG_FILE])
+            settings = CrawlerSettings(None, values=values)
+            execute(argv=["scrapy", "crawl", 'SOSOSpider' ], settings=settings)
 
-if __name__ == '__main__':
-    
-    run()
+celery = Celery('tasks', broker='amqp://guest@192.168.1.118//')
+
+@celery.task
+def run(proxy_ids):
+    proxies = get_proxies(proxy_ids)
+    p = ValidProcess(proxies)
+    p.start()
+    p.join()
