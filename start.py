@@ -13,24 +13,7 @@ from scrapy.cmdline import execute
 from scrapy.settings import CrawlerSettings
 import datetime
 import time
-
-def fetch51freeproxy():
-    values = configdata.get(const.vpsettings, {})
-    settings = CrawlerSettings(values=values)
-    execute(argv=["scrapy", "crawl", "FOSpider" ], settings=settings)
-
-def build_process(target):
-    f51fp = Process(target=target, name=target.__name__)
-    f51fp.daemon = 1
-    f51fp.start()
-    return f51fp
-
-def enqueue(target, p_dict):
-    if target.__name__ not in p_dict or not p_dict[target.__name__].is_alive():
-        p = build_process(target)
-        p_dict[target.__name__] = p
-    elif p_dict[target.__name__].is_alive():
-        pass
+import os
 
 def get_proxies():
     fs = FetchSession()
@@ -58,9 +41,16 @@ class ValidProcess(Process):
         values = configdata.get(const.vpsettings, {})
         values[AppConst.proxies] = self.proxies
         values[const.DOWNLOAD_TIMEOUT] = int(values.get(const.DOWNLOAD_TIMEOUT, 5))
-        logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        values[const.LOG_FILE] = '%s_%s' % (logfile_prefix,
-                                         values[const.LOG_FILE])
+        if const.Console in values:
+            if values[const.Console] == u'1':# out to console
+                values[const.LOG_FILE] = None
+            else:
+                log_dir = values.get(const.LOG_DIR, os.getcwd())
+                if const.LOG_FILE in values:
+                    logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                    log_file = '%s_%s' % (logfile_prefix, values[const.LOG_FILE])
+                    values[const.LOG_FILE] = os.sep.join([log_dir , log_file])
+
         settings = CrawlerSettings(None, values=values)
         execute(argv=["scrapy", "crawl", 'SOSOSpider' ], settings=settings)
         
@@ -72,7 +62,7 @@ def run():
         proxies = get_proxies()
         for idx, proxy in enumerate(proxies):
             proxy_ids.append(proxy.seqid)
-            if len(proxy_ids) == 500:
+            if len(proxy_ids) == 2000:
                 p = ValidProcess(proxies)
                 p.start()
                 proxy_ids = []

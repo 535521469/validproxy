@@ -66,9 +66,16 @@ class ValidProcess(Process):
             values = configdata.get(const.vpsettings, {})
             values[AppConst.proxies] = self.proxies
             values[const.DOWNLOAD_TIMEOUT] = int(values.get(const.DOWNLOAD_TIMEOUT, 5))
-            logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            values[u'LOG_FILE'] = '%s_%s' % (logfile_prefix,
-                                             values[const.LOG_FILE])
+            if const.Console in values:
+                if values[const.Console] == u'1':# out to console
+                    values[const.LOG_FILE] = None
+                else:
+                    log_dir = values.get(const.LOG_DIR, os.getcwd())
+                    if const.LOG_FILE in values:
+                        logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                        log_file = '%s_%s' % (logfile_prefix, values[const.LOG_FILE])
+                        values[const.LOG_FILE] = os.sep.join([log_dir , log_file])
+
             settings = CrawlerSettings(None, values=values)
             execute(argv=["scrapy", "crawl", 'SOSOSpider' ], settings=settings)
 
