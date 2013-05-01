@@ -6,7 +6,7 @@ Created on 2013-4-10
 from bot.config import configdata
 from bot.const import HTTPProxyValueConst
 from bot.dbitem import HTTPProxy
-from bot.dbutil import FetchSession
+from bot.dbutil import FetchSession, get_proxies
 from celery import Celery
 from const import ValidProxySpiderConst as const, AppConst
 from multiprocessing.process import Process
@@ -36,25 +36,6 @@ def enqueue(target, p_dict):
     elif p_dict[target.__name__].is_alive():
         pass
 
-def get_proxies(proxy_ids=None):
-    fs = FetchSession()
-    try:
-        status = [HTTPProxyValueConst.validflag_yes,
-                  HTTPProxyValueConst.validflag_null, ]
-        proxies = fs.query(HTTPProxy).filter(HTTPProxy.validflag.in_(status))
-        if proxy_ids:
-            proxies = proxies.filter(HTTPProxy.seqid.in_(proxy_ids))
-        proxies = proxies.all()
-        return proxies
-    except Exception as e:
-        print str(e)
-        fs.rollback()
-        raise e
-    else:
-        fs.commit()
-    finally:
-        fs.close()
-
 class ValidProcess(Process):
     
     def __init__(self, proxies):
@@ -83,7 +64,7 @@ celery = Celery('tasks', broker='amqp://guest@192.168.1.118//')
 
 @celery.task
 def run(proxy_ids):
-    proxies = get_proxies(proxy_ids)
+    proxies = get_proxies(proxy_ids, d=datetime.date.today())
     p = ValidProcess(proxies)
     p.start()
     p.join()

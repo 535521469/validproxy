@@ -4,8 +4,9 @@ Created on 2013-4-27
 @author: corleone
 '''
 from bot.config import configdata
+from bot.dbutil import get_proxies
 from const import AppConst
-from slave import get_proxies, run
+from slave import run
 import time
 
 frequence = configdata[AppConst.app_config].get(AppConst.app_config_frequence, 1800)

@@ -12,6 +12,7 @@ class ScrapyConst(object):
     LOG_DIR = u'LOG_DIR'
     DOWNLOAD_TIMEOUT = u'DOWNLOAD_TIMEOUT'
     Console = u'Console'
+    RETRY_TIMES = u'RETRY_TIMES'
 
 class ValidProxySpiderConst(ScrapyConst):
     vpsettings = u'vpsettings'
@@ -21,3 +22,7 @@ class AppConst(object):
     app_config_frequence = u'frequence'
     proxies = u'proxies'
     proxy = u'proxy'
+    volumepertime = u'volume_per_time'
+    
+    valid_urls = u'valid_urls'
+    

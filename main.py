@@ -4,32 +4,15 @@ Created on 2013-4-10
 @author: corleone
 '''
 from bot.config import configdata
-from bot.const import HTTPProxyValueConst
-from bot.dbitem import HTTPProxy
-from bot.dbutil import FetchSession
+from bot.dbutil import get_proxies
 from const import ValidProxySpiderConst as const, AppConst
 from multiprocessing.process import Process
 from scrapy.cmdline import execute
 from scrapy.settings import CrawlerSettings
+from vp.spiders import valid_urls
 import datetime
-import time
 import os
-
-def get_proxies():
-    fs = FetchSession()
-    try:
-        status = [HTTPProxyValueConst.validflag_yes,
-                  HTTPProxyValueConst.validflag_null, ]
-        proxies = fs.query(HTTPProxy).filter(HTTPProxy.validflag.in_(status)).all()
-        return proxies
-    except Exception as e:
-        print str(e)
-        fs.rollback()
-        raise e
-    else:
-        fs.commit()
-    finally:
-        fs.close()
+import time
 
 class ValidProcess(Process):
     
@@ -50,27 +33,34 @@ class ValidProcess(Process):
                     logfile_prefix = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                     log_file = '%s_%s' % (logfile_prefix, values[const.LOG_FILE])
                     values[const.LOG_FILE] = os.sep.join([log_dir , log_file])
-
-        settings = CrawlerSettings(None, values=values)
+                    
+        values[const.RETRY_TIMES] = len(valid_urls)
+        settings = u'vp.settings'
+        module_import = __import__(settings, {}, {}, [''])
+        
+        settings = CrawlerSettings(module_import, values=values)
         execute(argv=["scrapy", "crawl", 'SOSOSpider' ], settings=settings)
         
 def run():
-    frequence = configdata[AppConst.app_config].get(AppConst.app_config_frequence, 1800)
+    appconfig = configdata.get(AppConst.app_config, {})
+    frequence = appconfig.get(AppConst.app_config_frequence, 1800)
     frequence = int(frequence)
+    volume_per_time = appconfig.get(AppConst.volumepertime, 1000)
+    volume_per_time = int(volume_per_time)
     while 1:
         proxy_ids = []
-        proxies = get_proxies()
+        proxies = get_proxies(d=datetime.date.today())
         for idx, proxy in enumerate(proxies):
-            proxy_ids.append(proxy.seqid)
-            if len(proxy_ids) == 2000:
-                p = ValidProcess(proxies)
+            proxy_ids.append(proxy)
+            if len(proxy_ids) == volume_per_time:
+                p = ValidProcess(proxy_ids)
                 p.start()
                 proxy_ids = []
         else:
             if proxy_ids:
-                p = ValidProcess(proxies)
+                p = ValidProcess(proxy_ids)
                 p.start()
-                
+        print u'valid proxy .. sleep %s seconds' % frequence
         time.sleep(frequence)
 
 if __name__ == '__main__':

@@ -18,3 +18,4 @@ class FetchConst(object):
     DBConfig_passwd = u'passwd'
     DBConfig_host = u'host'
     DBConfig_charactset = u'charactset'
+    DBConfig_poolsize = u'PoolSize'
