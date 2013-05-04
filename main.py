@@ -47,21 +47,41 @@ def run():
     frequence = int(frequence)
     volume_per_time = appconfig.get(AppConst.volumepertime, 1000)
     volume_per_time = int(volume_per_time)
+    ps = []
     while 1:
         proxy_ids = []
         proxies = get_proxies(d=datetime.date.today())
+        print u'get %s proxies'%len(proxies)
         for idx, proxy in enumerate(proxies):
             proxy_ids.append(proxy)
             if len(proxy_ids) == volume_per_time:
                 p = ValidProcess(proxy_ids)
+                ps.append(p)
+                print u'%s %s start %s' % (datetime.datetime.now(), p.name,len(proxy_ids))
                 p.start()
                 proxy_ids = []
         else:
             if proxy_ids:
                 p = ValidProcess(proxy_ids)
+                ps.append(p)
+                print u'%s %s start %s' % (datetime.datetime.now(), p.name,len(proxy_ids))
                 p.start()
-        print u'valid proxy .. sleep %s seconds' % frequence
+                proxy_ids = []
+                
+        print u'%s valid proxy .. sleep %s seconds' % (datetime.datetime.now(),
+                                                       frequence)
         time.sleep(frequence)
+        while ps:
+            p = ps.pop()
+            try:
+                p.terminate()
+                print (u'%s terminate one process %s' % (datetime.datetime.now(),
+                                                         p.name))
+            except :
+                pass
+            
+            
+            
 
 if __name__ == '__main__':
     

@@ -5,10 +5,11 @@ Created on 2013-4-26
 '''
 from bot.dbitem import HTTPProxy
 from bot.dbutil import FetchSession
-from scrapy import log
-from functools import wraps
 from const import AppConst
+from functools import wraps
+from scrapy import log
 from scrapy.http.request import Request
+import datetime
 
 def change_proxy_status(parse):
     @wraps(parse)
@@ -19,6 +20,7 @@ def change_proxy_status(parse):
                 if isinstance(rs, HTTPProxy):
                     fs = FetchSession()
                     try:
+                        rs.validdatetime=datetime.datetime.now()
                         fs.merge(rs)
                     except Exception as e:
                         self.log(u'change_proxy_status error %s' % str(e),

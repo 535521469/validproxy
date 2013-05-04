@@ -6,9 +6,8 @@ Created on 2013-4-24
 from bot.config import configdata
 from bot.const import FetchConst, HTTPProxyValueConst
 from bot.dbitem import HTTPProxy
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, desc
 from sqlalchemy.orm.session import sessionmaker
-import datetime
 
 dbconfig = configdata[FetchConst.DBConfig]
 # mysql://root:@localhost:3306/test
@@ -35,6 +34,9 @@ def get_proxies(proxy_ids=None, d=None):
             proxies = proxies.filter(HTTPProxy.seqid.in_(proxy_ids))
         if d:
             proxies = proxies.filter(HTTPProxy.fetchdate == d)
+            
+        proxies = proxies.order_by(desc(HTTPProxy.fetchdate)).order_by(desc(HTTPProxy.validdatetime))
+            
         proxies = proxies.all()
         return proxies
     except Exception as e:
